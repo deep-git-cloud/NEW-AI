@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Universal AI Chat</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Marked.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    html, body { height: 100%; }
+    pre { white-space: pre-wrap; word-wrap: break-word; }
+    .sidebar-transition { transition: transform 0.3s ease; }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 h-full">
+
+<div id="loading" class="flex items-center justify-center h-full text-gray-500 text-lg">
+  Loading App...
+</div>
+
+<div id="app" class="hidden min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside id="sidebar"
+    class="fixed md:relative z-30 w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col sidebar-transition transform -translate-x-full md:translate-x-0">
+    
+    <div class="p-4 flex justify-between items-center border-b dark:border-gray-700">
+      <h2 class="font-semibold">Chats</h2>
+      <button id="newChatBtn" class="text-sm bg-blue-500 text-white px-2 py-1 rounded">New</button>
+    </div>
+
+    <div id="chatList" class="flex-1 overflow-y-auto p-2 space-y-2"></div>
+
+    <div class="p-3 border-t dark:border-gray-700 text-xs text-gray-400">
+      Universal AI
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col min-h-screen">
+
+    <!-- Topbar -->
+    <header class="flex items-center justify-between p-3 border-b bg-white dark:bg-gray-800 dark:border-gray-700">
+      <div class="flex items-center gap-3">
+        <button id="menuBtn" class="md:hidden text-xl">☰</button>
+        <h1 class="font-semibold">Universal AI</h1>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="darkToggle" class="text-sm px-2 py-1 border rounded">🌙</button>
+        <button id="systemPromptBtn" class="text-sm px-2 py-1 border rounded">System</button>
+        <button id="settingsBtn" class="text-sm px-2 py-1 border rounded">Settings</button>
+      </div>
+    </header>
+
+    <!-- Messages -->
+    <main id="messages"
+      class="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
+    </main>
+
+    <!-- Input -->
+    <div class="fixed bottom-0 left-0 md:left-72 right-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 p-3">
+      <div class="flex gap-2">
+        <textarea id="userInput" rows="1"
+          class="flex-1 resize-none p-2 border rounded dark:bg-gray-700"
+          placeholder="Send a message..."></textarea>
+        <button id="sendBtn"
+          class="bg-blue-500 text-white px-4 rounded">Send</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded w-full max-w-md space-y-4">
+    <h2 class="text-lg font-semibold">Settings</h2>
+
+    <input id="apiKeyInput" type="password"
+      class="w-full p-2 border rounded dark:bg-gray-700"
+      placeholder="OpenRouter API Key">
+
+    <input id="modelInput"
+      class="w-full p-2 border rounded dark:bg-gray-700"
+      value="deepseek/deepseek-r1:free">
+
+    <div class="flex justify-end gap-2">
+      <button id="closeSettings" class="px-3 py-1 border rounded">Close</button>
+      <button id="saveSettings" class="px-3 py-1 bg-blue-500 text-white rounded">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- System Prompt Modal -->
+<div id="systemModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded w-full max-w-md space-y-4">
+    <h2 class="text-lg font-semibold">System Prompt</h2>
+
+    <textarea id="systemInput"
+      class="w-full p-2 border rounded dark:bg-gray-700"
+      rows="4"></textarea>
+
+    <div class="flex justify-end gap-2">
+      <button id="closeSystem" class="px-3 py-1 border rounded">Close</button>
+      <button id="saveSystem" class="px-3 py-1 bg-blue-500 text-white rounded">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const app = document.getElementById("app");
+  const loading = document.getElementById("loading");
+
+  const messagesDiv = document.getElementById("messages");
+  const userInput = document.getElementById("userInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const chatList = document.getElementById("chatList");
+
+  const settingsModal = document.getElementById("settingsModal");
+  const systemModal = document.getElementById("systemModal");
+
+  const apiKeyInput = document.getElementById("apiKeyInput");
+  const modelInput = document.getElementById("modelInput");
+  const systemInput = document.getElementById("systemInput");
+
+  let chats = JSON.parse(localStorage.getItem("chats") || "[]");
+  let currentChatId = localStorage.getItem("currentChatId");
+
+  function saveState() {
+    localStorage.setItem("chats", JSON.stringify(chats));
+    localStorage.setItem("currentChatId", currentChatId);
+  }
+
+  function getCurrentChat() {
+    return chats.find(c => c.id === currentChatId);
+  }
+
+  function createChat() {
+    const chat = {
+      id: Date.now().toString(),
+      name: "New Chat",
+      messages: [],
+      system: ""
+    };
+    chats.unshift(chat);
+    currentChatId = chat.id;
+    saveState();
+    renderChats();
+    renderMessages();
+  }
+
+  function renderChats() {
+    chatList.innerHTML = "";
+    chats.forEach(chat => {
+      const div = document.createElement("div");
+      div.className = "p-2 rounded cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 text-sm flex justify-between items-center";
+      div.innerHTML = `
+        <span>${chat.name}</span>
+        <div class="flex gap-1">
+          <button data-rename="${chat.id}">✏️</button>
+          <button data-delete="${chat.id}">🗑️</button>
+        </div>
+      `;
+      div.onclick = (e) => {
+        if (e.target.dataset.rename || e.target.dataset.delete) return;
+        currentChatId = chat.id;
+        saveState();
+        renderMessages();
+      };
+      chatList.appendChild(div);
+    });
+  }
+
+  chatList.addEventListener("click", (e) => {
+    const renameId = e.target.dataset.rename;
+    const deleteId = e.target.dataset.delete;
+
+    if (renameId) {
+      const chat = chats.find(c => c.id === renameId);
+      const newName = prompt("Rename chat:", chat.name);
+      if (newName) chat.name = newName;
+      saveState();
+      renderChats();
+    }
+
+    if (deleteId) {
+      chats = chats.filter(c => c.id !== deleteId);
+      if (currentChatId === deleteId) {
+        currentChatId = chats[0]?.id || null;
+      }
+      saveState();
+      renderChats();
+      renderMessages();
+    }
+  });
+
+  function renderMessages() {
+    messagesDiv.innerHTML = "";
+    const chat = getCurrentChat();
+    if (!chat) return;
+    chat.messages.forEach(msg => addMessage(msg.role, msg.content));
+  }
+
+  function addMessage(role, content, stream = false) {
+    const div = document.createElement("div");
+    div.className = role === "user"
+      ? "text-right"
+      : "text-left";
+
+    const bubble = document.createElement("div");
+    bubble.className = role === "user"
+      ? "inline-block bg-blue-500 text-white p-3 rounded-lg max-w-xl"
+      : "inline-block bg-gray-200 dark:bg-gray-700 p-3 rounded-lg max-w-xl prose dark:prose-invert";
+
+    if (!stream) {
+      bubble.innerHTML = marked.parse(content);
+    }
+
+    div.appendChild(bubble);
+    messagesDiv.appendChild(div);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    return bubble;
+  }
+
+  async function sendMessage() {
+    const text = userInput.value.trim();
+    if (!text) return;
+
+    const chat = getCurrentChat();
+    if (!chat) return;
+
+    chat.messages.push({ role: "user", content: text });
+    saveState();
+    addMessage("user", text);
+    userInput.value = "";
+
+    const aiBubble = addMessage("assistant", "", true);
+
+    const apiKey = localStorage.getItem("apiKey");
+    const model = localStorage.getItem("model") || "deepseek/deepseek-r1:free";
+
+    if (!apiKey) {
+      aiBubble.innerText = "Please set your API key in settings.";
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + apiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: model,
+        stream: true,
+        messages: [
+          ...(chat.system ? [{ role: "system", content: chat.system }] : []),
+          ...chat.messages
+        ]
+      }),
+      signal: controller.signal
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullText = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n");
+
+      for (let line of lines) {
+        if (line.startsWith("data: ")) {
+          const json = line.replace("data: ", "");
+          if (json === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(json);
+            const token = parsed.choices?.[0]?.delta?.content;
+            if (token) {
+              fullText += token;
+              aiBubble.innerHTML = marked.parse(fullText);
+              messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+          } catch {}
+        }
+      }
+    }
+
+    chat.messages.push({ role: "assistant", content: fullText });
+    saveState();
+  }
+
+  sendBtn.onclick = sendMessage;
+  userInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  document.getElementById("newChatBtn").onclick = createChat;
+
+  document.getElementById("settingsBtn").onclick = () => {
+    settingsModal.classList.remove("hidden");
+    apiKeyInput.value = localStorage.getItem("apiKey") || "";
+    modelInput.value = localStorage.getItem("model") || "deepseek/deepseek-r1:free";
+  };
+
+  document.getElementById("closeSettings").onclick = () => {
+    settingsModal.classList.add("hidden");
+  };
+
+  document.getElementById("saveSettings").onclick = () => {
+    localStorage.setItem("apiKey", apiKeyInput.value.trim());
+    localStorage.setItem("model", modelInput.value.trim());
+    settingsModal.classList.add("hidden");
+  };
+
+  document.getElementById("systemPromptBtn").onclick = () => {
+    const chat = getCurrentChat();
+    if (!chat) return;
+    systemInput.value = chat.system || "";
+    systemModal.classList.remove("hidden");
+  };
+
+  document.getElementById("closeSystem").onclick = () => {
+    systemModal.classList.add("hidden");
+  };
+
+  document.getElementById("saveSystem").onclick = () => {
+    const chat = getCurrentChat();
+    if (!chat) return;
+    chat.system = systemInput.value;
+    saveState();
+    systemModal.classList.add("hidden");
+  };
+
+  document.getElementById("menuBtn").onclick = () => {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.classList.toggle("-translate-x-full");
+  };
+
+  document.getElementById("darkToggle").onclick = () => {
+    document.documentElement.classList.toggle("dark");
+    localStorage.setItem("darkMode",
+      document.documentElement.classList.contains("dark"));
+  };
+
+  if (localStorage.getItem("darkMode") === "true") {
+    document.documentElement.classList.add("dark");
+  }
+
+  if (!currentChatId) createChat();
+  renderChats();
+  renderMessages();
+
+  loading.classList.add("hidden");
+  app.classList.remove("hidden");
+});
+</script>
+
+</body>
+</html>
