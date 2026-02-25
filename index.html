@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Universal AI Chat</title>
+  <title>Universal AI Chat — Liquid LFM Thinking</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -701,6 +701,82 @@
       margin: 4px 0;
     }
     .dark .error-bubble { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
+
+    /* ─── Thinking block ─────────────────────────── */
+    .thinking-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #f0f4ff;
+      border: 1px solid #c7d7fe;
+      border-radius: 10px;
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      color: #4f6ef7;
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+    .dark .thinking-indicator {
+      background: #1a1f3a;
+      border-color: #2d3a6e;
+      color: #818cf8;
+    }
+    .thinking-dots span {
+      display: inline-block;
+      width: 5px; height: 5px;
+      background: #4f6ef7;
+      border-radius: 50%;
+      margin: 0 1px;
+      animation: thinkBounce 1.2s infinite ease-in-out;
+    }
+    .dark .thinking-dots span { background: #818cf8; }
+    .thinking-dots span:nth-child(1) { animation-delay: 0s; }
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes thinkBounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40%            { transform: translateY(-4px); opacity: 1; }
+    }
+    .think-block { margin-bottom: 10px; }
+    .think-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f0f4ff;
+      border: 1px solid #c7d7fe;
+      border-radius: 8px;
+      padding: 5px 11px;
+      font-size: 0.8rem;
+      color: #4f6ef7;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all 0.15s;
+      margin-bottom: 0;
+      font-style: italic;
+    }
+    .think-toggle:hover { background: #e0e8ff; }
+    .dark .think-toggle { background: #1a1f3a; border-color: #2d3a6e; color: #818cf8; }
+    .dark .think-toggle:hover { background: #1e2550; }
+    .think-toggle .think-arrow { font-style: normal; display:inline-block; transition: transform 0.2s; }
+    .think-toggle.open .think-arrow { transform: rotate(90deg); }
+    .think-content {
+      display: none;
+      background: #f8f9ff;
+      border: 1px solid #dde5fe;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      color: #5a6892;
+      line-height: 1.65;
+      font-style: italic;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .think-content.open { display: block; animation: fadeUp 0.2s ease; }
+    .dark .think-content { background: #131828; border-color: #252f5c; color: #7b86b8; }
   </style>
 </head>
 <body>
@@ -821,9 +897,9 @@
     <input type="password" id="api-key-input" placeholder="sk-or-v1-…" autocomplete="off" />
 
     <label for="model-input">Model</label>
-    <input type="text" id="model-input" placeholder="deepseek/deepseek-r1:free" />
+    <input type="text" id="model-input" placeholder="liquid/lfm-2.5-1.2b-thinking:free" />
     <div style="font-size:0.78rem;color:#9ca3af;margin-top:-10px;margin-bottom:14px;">
-      Examples: <code style="font-size:0.78rem;">openai/gpt-4o</code>, <code style="font-size:0.78rem;">anthropic/claude-3-5-sonnet</code>, <code style="font-size:0.78rem;">meta-llama/llama-3.1-70b-instruct</code>
+      Current: <code style="font-size:0.78rem;">liquid/lfm-2.5-1.2b-thinking:free</code> · Others: <code style="font-size:0.78rem;">deepseek/deepseek-r1:free</code>, <code style="font-size:0.78rem;">openai/gpt-4o</code>
     </div>
 
     <label for="max-tokens-input">Max Tokens</label>
@@ -879,7 +955,7 @@
     currentChatId: null,
     settings: {
       apiKey: '',
-      model: 'deepseek/deepseek-r1:free',
+      model: 'liquid/lfm-2.5-1.2b-thinking:free',
       maxTokens: 4096,
       temperature: 0.7,
       systemPrompt: 'You are a helpful, harmless, and honest AI assistant.',
@@ -1102,7 +1178,7 @@
 
   window.openSettings = function() {
     document.getElementById('api-key-input').value = state.settings.apiKey || '';
-    document.getElementById('model-input').value = state.settings.model || 'deepseek/deepseek-r1:free';
+    document.getElementById('model-input').value = state.settings.model || 'liquid/lfm-2.5-1.2b-thinking:free';
     document.getElementById('max-tokens-input').value = state.settings.maxTokens || 4096;
     document.getElementById('temperature-input').value = state.settings.temperature !== undefined ? state.settings.temperature : 0.7;
     openModal('settings-modal');
@@ -1111,7 +1187,7 @@
 
   window.saveSettings = function() {
     state.settings.apiKey = document.getElementById('api-key-input').value.trim();
-    state.settings.model = document.getElementById('model-input').value.trim() || 'deepseek/deepseek-r1:free';
+    state.settings.model = document.getElementById('model-input').value.trim() || 'liquid/lfm-2.5-1.2b-thinking:free';
     var mt = parseInt(document.getElementById('max-tokens-input').value);
     state.settings.maxTokens = isNaN(mt) ? 4096 : Math.max(1, Math.min(32000, mt));
     var temp = parseFloat(document.getElementById('temperature-input').value);
@@ -1254,7 +1330,7 @@
     } else {
       return '<div class="msg-row ai">' +
         '<div class="msg-avatar ai">✦</div>' +
-        '<div class="msg-bubble ai">' + renderMarkdown(content) + '</div>' +
+        '<div class="msg-bubble ai">' + renderWithThinking(content, false) + '</div>' +
       '</div>';
     }
   }
@@ -1288,18 +1364,118 @@
     return div;
   }
 
-  function updateStreamingBubble(text, done) {
+  function updateStreamingBubble(rawText, done) {
     var bubble = document.getElementById('streaming-bubble');
     if (!bubble) return;
     if (done) {
       bubble.removeAttribute('id');
-      bubble.innerHTML = renderMarkdown(text);
+      bubble.innerHTML = renderWithThinking(rawText, false);
     } else {
-      // Show raw text with cursor while streaming
-      bubble.innerHTML = esc(text).replace(/\n/g,'<br>') + '<span class="typing-cursor"></span>';
+      bubble.innerHTML = renderWithThinkingLive(rawText);
     }
     scrollToBottom();
   }
+
+  // Renders final message: extracts <think>…</think> as collapsible block
+  function renderWithThinking(rawText, isLive) {
+    if (!rawText) return '';
+    // Extract all <think>...</think> blocks
+    var thinkRegex = /<think>([\s\S]*?)<\/think>/gi;
+    var thinkBlocks = [];
+    var match;
+    while ((match = thinkRegex.exec(rawText)) !== null) {
+      thinkBlocks.push(match[1].trim());
+    }
+    // Remove <think> blocks from visible content
+    var cleanText = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+    var html = '';
+
+    // Render thinking blocks as collapsible
+    if (thinkBlocks.length > 0) {
+      var blockId = 'think-' + genId();
+      var combinedThink = thinkBlocks.join('\n\n---\n\n');
+      html += '<div class="think-block">';
+      html += '<button class="think-toggle" onclick="toggleThink(\'' + blockId + '\',this)" title="View model reasoning">';
+      html += '<span class="think-arrow">▶</span> 🧠 View reasoning (' + Math.round(combinedThink.length / 5) + ' tokens est.)';
+      html += '</button>';
+      html += '<div class="think-content" id="' + blockId + '">' + esc(combinedThink) + '</div>';
+      html += '</div>';
+    }
+
+    // Render main answer
+    if (cleanText) {
+      html += renderMarkdown(cleanText);
+    } else if (thinkBlocks.length > 0 && !cleanText) {
+      html += '<span style="color:#9ca3af;font-style:italic;">Thinking complete.</span>';
+    }
+
+    return html;
+  }
+
+  // Live rendering during streaming — detects partial think tags
+  function renderWithThinkingLive(rawText) {
+    if (!rawText) return '<span class="typing-cursor"></span>';
+
+    var inThink = false;
+    var thinkDone = false;
+    var thinkContent = '';
+    var afterThink = '';
+
+    // Check if we're currently inside an open <think> tag
+    var openIdx = rawText.lastIndexOf('<think>');
+    var closeIdx = rawText.lastIndexOf('</think>');
+
+    if (openIdx !== -1 && closeIdx < openIdx) {
+      // We're inside a think block (not yet closed)
+      inThink = true;
+      thinkContent = rawText.slice(openIdx + 7); // after <think>
+    } else if (openIdx !== -1 && closeIdx > openIdx) {
+      // Think block complete
+      thinkDone = true;
+      var thinkRegex2 = /<think>([\s\S]*?)<\/think>/gi;
+      var m2;
+      var blocks2 = [];
+      while ((m2 = thinkRegex2.exec(rawText)) !== null) blocks2.push(m2[1].trim());
+      thinkContent = blocks2.join('\n\n---\n\n');
+      afterThink = rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    }
+
+    var html = '';
+
+    if (inThink) {
+      // Show animated thinking indicator
+      html += '<div class="thinking-indicator">';
+      html += '<span class="thinking-dots"><span></span><span></span><span></span></span>';
+      html += 'Thinking…';
+      html += '</div>';
+    } else if (thinkDone && thinkContent) {
+      // Render collapsed think block
+      var blockId = 'think-live-' + genId();
+      html += '<div class="think-block">';
+      html += '<button class="think-toggle" onclick="toggleThink(\'' + blockId + '\',this)">';
+      html += '<span class="think-arrow">▶</span> 🧠 View reasoning';
+      html += '</button>';
+      html += '<div class="think-content" id="' + blockId + '">' + esc(thinkContent) + '</div>';
+      html += '</div>';
+    }
+
+    // Render answer content with cursor
+    if (afterThink || (!inThink && !thinkDone)) {
+      var visibleText = afterThink || rawText;
+      html += '<span>' + esc(visibleText).replace(/\n/g, '<br>') + '</span>';
+    }
+
+    html += '<span class="typing-cursor"></span>';
+    return html;
+  }
+
+  window.toggleThink = function(id, btn) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('open');
+    if (btn) btn.classList.toggle('open');
+  };
 
   function scrollToBottom() {
     var container = document.getElementById('messages-container');
@@ -1428,7 +1604,7 @@
 
     // Build payload
     var payload = {
-      model: state.settings.model || 'deepseek/deepseek-r1:free',
+      model: state.settings.model || 'liquid/lfm-2.5-1.2b-thinking:free',
       max_tokens: state.settings.maxTokens || 4096,
       temperature: state.settings.temperature !== undefined ? state.settings.temperature : 0.7,
       stream: true,
@@ -1556,7 +1732,7 @@
     applyDark();
 
     // Model display
-    document.getElementById('model-display').textContent = state.settings.model || 'deepseek/deepseek-r1:free';
+    document.getElementById('model-display').textContent = state.settings.model || 'liquid/lfm-2.5-1.2b-thinking:free';
 
     // Ensure we have a chat
     if (!state.currentChatId || !state.chats[state.currentChatId]) {
